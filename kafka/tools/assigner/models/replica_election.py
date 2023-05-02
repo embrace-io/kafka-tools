@@ -39,13 +39,16 @@ class ReplicaElection(BaseModel):
             ple['partitions'].append(partition.dict_for_replica_election())
         return ple
 
-    def execute(self, num, total, zookeeper, tools_path, plugins=[], dry_run=True):
+    def execute(self, num, total, cluster, tools_path, plugins=[], dry_run=True):
         if not dry_run:
+            a_broker = list(cluster.brokers.values())[0]
+
             with NamedTemporaryFile(mode='w') as assignfile:
                 json.dump(self.dict_for_replica_election(), assignfile)
                 assignfile.flush()
                 FNULL = open(os.devnull, 'w')
-                subprocess.call(['{0}/kafka-preferred-replica-election.sh'.format(tools_path),
-                                 '--zookeeper', zookeeper,
+                subprocess.call(['{0}/kafka-leader-election.sh'.format(tools_path),
+                                 '--bootstrap-server', f'{a_broker.hostname}:{a_broker.port}',
+                                 '--election-type', 'PREFERRED',
                                  '--path-to-json-file', assignfile.name],
                                 stdout=FNULL, stderr=FNULL)

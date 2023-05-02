@@ -8,6 +8,7 @@ from testfixtures.popen import MockPopen
 
 from kafka.tools.exceptions import ReassignmentFailedException
 from kafka.tools.models.broker import Broker
+from kafka.tools.models.cluster import Cluster
 from kafka.tools.models.topic import Topic
 from kafka.tools.assigner.models.reassignment import Reassignment
 from kafka.tools.assigner.plugins import PluginModule
@@ -17,6 +18,9 @@ class ReassignmentTests(unittest.TestCase):
     def setUp(self):
         self.topic = Topic('testTopic', 10)
         self.broker = Broker('brokerhost1.example.com', id=1)
+        self.cluster = Cluster()
+        self.cluster.brokers = {1: self.broker}
+
         for i in range(10):
             self.topic.partitions[i].replicas = [self.broker]
         self.reassignment = Reassignment(self.topic.partitions, pause_time=0)
@@ -41,12 +45,12 @@ class ReassignmentTests(unittest.TestCase):
 
     @patch.object(Reassignment, '_execute')
     def test_reassignment_execute_real(self, mock_exec):
-        self.reassignment.execute(1, 1, 'zkconnect', '/path/to/tools', plugins=[self.null_plugin], dry_run=False)
-        mock_exec.assert_called_once_with(1, 1, 'zkconnect', '/path/to/tools')
+        self.reassignment.execute(1, 1, self.cluster, '/path/to/tools', plugins=[self.null_plugin], dry_run=False)
+        mock_exec.assert_called_once_with(1, 1, self.cluster, '/path/to/tools')
 
     @patch.object(Reassignment, '_execute')
     def test_reassignment_execute_dryrun(self, mock_exec):
-        self.reassignment.execute(1, 1, 'zkconnect', '/path/to/tools', plugins=[self.null_plugin], dry_run=True)
+        self.reassignment.execute(1, 1, self.cluster, '/path/to/tools', plugins=[self.null_plugin], dry_run=True)
         mock_exec.assert_not_called()
 
     @patch('kafka.tools.assigner.models.reassignment.subprocess.Popen', new_callable=MockPopen)
@@ -55,9 +59,9 @@ class ReassignmentTests(unittest.TestCase):
         mock_popen.set_default()
         mock_check.side_effect = [10, 5, 0]
 
-        self.reassignment._execute(1, 1, 'zkconnect', '/path/to/tools')
+        self.reassignment._execute(1, 1, self.cluster, '/path/to/tools')
 
-        compare([call.Popen(['/path/to/tools/kafka-reassign-partitions.sh', '--execute', '--zookeeper', 'zkconnect', '--reassignment-json-file', ANY],
+        compare([call.Popen(['/path/to/tools/kafka-reassign-partitions.sh', '--execute', '--bootstrap-server', 'brokerhost1.example.com:9092', '--reassignment-json-file', ANY],
                             stderr=ANY, stdout=ANY),
                  call.Popen_instance.wait()], mock_popen.mock.method_calls)
         assert len(mock_check.mock_calls) == 3
@@ -70,8 +74,8 @@ class ReassignmentTests(unittest.TestCase):
                       "Reassignment of partition [testTopic,2] completed successfully\n"
                       "Reassignment of partition [testTopic,3] completed successfully\n")
         mock_popen.set_default(stdout=cmd_stdout.encode('utf-8'))
-        self.reassignment.check_completion('zkconnect', '/path/to/tools', 'assignfilename')
-        compare([call.Popen(['/path/to/tools/kafka-reassign-partitions.sh', '--verify', '--zookeeper', 'zkconnect', '--reassignment-json-file',
+        self.reassignment.check_completion(self.cluster, '/path/to/tools', 'assignfilename')
+        compare([call.Popen(['/path/to/tools/kafka-reassign-partitions.sh', '--verify', '--bootstrap-server', 'brokerhost1.example.com:9092', '--reassignment-json-file',
                              'assignfilename'], stderr=ANY, stdout=PIPE)],
                 mock_popen.mock.method_calls)
 
@@ -114,7 +118,7 @@ class ReassignmentTests(unittest.TestCase):
                       "Reassignment of partition [testTopic,2] still in progress\n"
                       "Reassignment of partition [testTopic,3] completed successfully\n")
         mock_popen.set_default(stdout=cmd_stdout.encode('utf-8'))
-        self.assertRaises(ReassignmentFailedException, self.reassignment.check_completion, 'zkconnect', '/path/to/tools', 'assignfilename')
+        self.assertRaises(ReassignmentFailedException, self.reassignment.check_completion, self.cluster, '/path/to/tools', 'assignfilename')
 
     @patch('kafka.tools.assigner.models.reassignment.subprocess.Popen', new_callable=MockPopen)
     def test_check_completion_success(self, mock_popen):
@@ -124,7 +128,7 @@ class ReassignmentTests(unittest.TestCase):
                       "Reassignment of partition [testTopic,2] completed successfully\n"
                       "Reassignment of partition [testTopic,3] completed successfully\n")
         mock_popen.set_default(stdout=cmd_stdout.encode('utf-8'))
-        assert self.reassignment.check_completion('zkconnect', '/path/to/tools', 'assignfilename') == 0
+        assert self.reassignment.check_completion(self.cluster, '/path/to/tools', 'assignfilename') == 0
 
     @patch('kafka.tools.assigner.models.reassignment.subprocess.Popen', new_callable=MockPopen)
     def test_check_completion_progress(self, mock_popen):
@@ -134,4 +138,4 @@ class ReassignmentTests(unittest.TestCase):
                       "Reassignment of partition [testTopic,2] completed successfully\n"
                       "Reassignment of partition [testTopic,3] completed successfully\n")
         mock_popen.set_default(stdout=cmd_stdout.encode('utf-8'))
-        assert self.reassignment.check_completion('zkconnect', '/path/to/tools', 'assignfilename') == 1
+        assert self.reassignment.check_completion(self.cluster, '/path/to/tools', 'assignfilename') == 1

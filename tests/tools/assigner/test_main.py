@@ -119,8 +119,8 @@ class MainTests(unittest.TestCase):
         args = argparse.Namespace(ple_wait=0, zookeeper='zkconnect', tools_path='/path/to/tools')
         batches = [ReplicaElection(cluster.brokers[1].partitions, args.ple_wait),
                    ReplicaElection(cluster.brokers[2].partitions, args.ple_wait)]
-        run_preferred_replica_elections(batches, args, args.tools_path, [], False)
+        run_preferred_replica_elections(batches, args, args.tools_path, [], False, cluster)
 
         mock_sleep.assert_called_once_with(0)
-        mock_execute.assert_has_calls([call(1, 2, 'zkconnect', '/path/to/tools', [], False),
-                                       call(2, 2, 'zkconnect', '/path/to/tools', [], False)])
+        mock_execute.assert_has_calls([call(1, 2, cluster.brokers, '/path/to/tools', [], False),
+                                       call(2, 2, cluster.brokers, '/path/to/tools', [], False)])

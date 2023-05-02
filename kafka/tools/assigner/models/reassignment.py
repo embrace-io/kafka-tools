@@ -52,20 +52,22 @@ class Reassignment(BaseModel):
         for plugin in plugins:
             plugin.after_execute_batch(num)
 
-    def _execute(self, num, total, zookeeper, tools_path):
+    def _execute(self, num, total, cluster, tools_path):
+        a_broker = list(cluster.brokers.values())[0]
+
         with NamedTemporaryFile(mode='w') as assignfile:
             json.dump(self.dict_for_reassignment(), assignfile)
             assignfile.flush()
             FNULL = open(os.devnull, 'w')
             proc = subprocess.Popen(['{0}/kafka-reassign-partitions.sh'.format(tools_path), '--execute',
-                                     '--zookeeper', zookeeper,
+                                     '--bootstrap-server', f'{a_broker.hostname}:{a_broker.port}',
                                      '--reassignment-json-file', assignfile.name],
                                     stdout=FNULL, stderr=FNULL)
             proc.wait()
 
             # Wait until finished
             while True:
-                remaining_partitions = self.check_completion(zookeeper, tools_path, assignfile.name)
+                remaining_partitions = self.check_completion(cluster, tools_path, assignfile.name)
                 if remaining_partitions == 0:
                     break
 
@@ -85,10 +87,12 @@ class Reassignment(BaseModel):
                 return 1
         return 0
 
-    def check_completion(self, zookeeper, tools_path, assign_filename):
+    def check_completion(self, cluster, tools_path, assign_filename):
+        a_broker = list(cluster.brokers.values())[0]
+
         FNULL = open(os.devnull, 'w')
         proc = subprocess.Popen(['{0}/kafka-reassign-partitions.sh'.format(tools_path), '--verify',
-                                 '--zookeeper', zookeeper,
+                                 '--bootstrap-server', f'{a_broker.hostname}:{a_broker.port}',
                                  '--reassignment-json-file', assign_filename],
                                 stdout=subprocess.PIPE, stderr=FNULL)
         lines = proc.stdout.readlines()
