@@ -18,7 +18,7 @@
 from multiprocessing.pool import ThreadPool
 from random import shuffle
 from threading import RLock
-import collections
+from collections.abc import Sequence
 import six
 import time
 
@@ -347,7 +347,7 @@ class Client:
                 is unavailable
         """
         self._raise_if_not_connected()
-        if isinstance(topic_offsets, six.string_types) or (not isinstance(topic_offsets, collections.Sequence)):
+        if isinstance(topic_offsets, six.string_types) or (not isinstance(topic_offsets, Sequence)):
             raise TypeError("topic_offsets argument is not a list")
 
         # Get the group we're setting offsets for (potentially updating the group information)

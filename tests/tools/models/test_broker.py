@@ -1,4 +1,4 @@
-import collections
+from collections.abc import Sequence
 import unittest
 import socket
 from mock import MagicMock, call, patch
@@ -180,7 +180,7 @@ class BrokerTests(unittest.TestCase):
         assert isinstance(response, ApiVersionsV0Response)
         assert response.correlation_id == 1
         assert response['error'] == 0
-        assert isinstance(response['api_versions'], collections.Sequence)
+        assert isinstance(response['api_versions'], Sequence)
         assert len(response['api_versions']) == 1
         assert len(response['api_versions'][0]) == 3
         assert response['api_versions'][0]['api_key'] == 1

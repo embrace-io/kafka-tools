@@ -1,4 +1,4 @@
-import collections
+from collections.abc import Sequence
 import six
 
 
@@ -6,7 +6,7 @@ def _validate_schema_entry_type(entry_type):
     if isinstance(entry_type, six.string_types):
         if entry_type.lower() not in ('int8', 'int16', 'int32', 'int64', 'string', 'bytes', 'boolean', 'array'):
             raise TypeError('Unknown schema data type: {0}'.format(entry_type))
-    elif isinstance(entry_type, collections.Sequence):
+    elif isinstance(entry_type, Sequence):
         validate_schema(entry_type)
     else:
         raise TypeError('Schema type must be a string type or a list, not {0}'.format(type(entry_type)))
