@@ -24,9 +24,9 @@ class SizerJMX(SizerModule):
             if 'libjvm' in self.properties:
                 libjvm = self.properties['libjvm']
             elif "JAVA_HOME" in os.environ:
-                libjvm = os.path.join(os.environ["JAVA_HOME"], "jre/lib/amd64/server/libjvm.so")
+                libjvm = os.path.join(os.environ["JAVA_HOME"], "lib/server/libjvm.so")
             else:
-                libjvm = "/export/apps/jdk/JDK-1_8_0_72/jre/lib/amd64/server/libjvm.so"
+                libjvm = "/usr/lib/jvm/jre/lib/server/libjvm.so"
 
             self._java_provider.startJVM(libjvm)
         else:
