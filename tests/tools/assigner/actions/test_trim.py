@@ -70,4 +70,4 @@ class ActionTrimTests(unittest.TestCase):
     def test_process_cluster_error(self):
         self.args.brokers = [1, 2]
         action = ActionTrim(self.args, self.cluster)
-        self.assertRaises(NotEnoughReplicasException, action.process_cluster)
+        self.assertRaises(ValueError, action.process_cluster)

@@ -4,6 +4,7 @@ import unittest
 from mock import patch, ANY
 
 from kafka.tools.models.broker import Broker
+from kafka.tools.models.cluster import Cluster
 from kafka.tools.models.topic import Topic
 from kafka.tools.assigner.models.replica_election import ReplicaElection
 
@@ -12,6 +13,9 @@ class ReplicaElectionTests(unittest.TestCase):
     def setUp(self):
         self.topic = Topic('testTopic', 10)
         self.broker = Broker('brokerhost1.example.com', id=1)
+        self.cluster = Cluster()
+        self.cluster.brokers = {1: self.broker}
+
         for i in range(10):
             self.topic.partitions[i].replicas = [self.broker]
         self.replica_election = ReplicaElection(self.topic.partitions, pause_time=0)
@@ -35,8 +39,9 @@ class ReplicaElectionTests(unittest.TestCase):
 
     @patch('kafka.tools.assigner.models.replica_election.subprocess.call')
     def test_replica_election_execute(self, mock_call):
-        self.replica_election.execute(1, 1, 'zk_connect_string', '/path/to/tools', plugins=[], dry_run=False)
-        mock_call.assert_called_once_with(['/path/to/tools/kafka-preferred-replica-election.sh',
-                                           '--zookeeper', 'zk_connect_string',
+        self.replica_election.execute(1, 1, self.cluster, '/path/to/tools', plugins=[], dry_run=False)
+        mock_call.assert_called_once_with(['/path/to/tools/kafka-leader-election.sh',
+                                           '--bootstrap-server', 'brokerhost1.example.com:9092',
+                                           '--election-type', 'PREFERRED',
                                            '--path-to-json-file', ANY],
                                           stderr=ANY, stdout=ANY)

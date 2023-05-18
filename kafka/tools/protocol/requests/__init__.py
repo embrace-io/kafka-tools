@@ -16,7 +16,7 @@
 # under the License.
 
 import abc
-import collections
+from collections.abc import Sequence
 import six
 import struct
 
@@ -50,7 +50,7 @@ def _evaluate_sequence(value, schema):
             raise KeyError('Value is missing an entry with key "{0}"'.format(entry['name']))
         entry_schema = entry['type']
         if isinstance(entry_schema, six.string_types) and entry_schema.lower() == 'array':
-            if isinstance(value[entry['name']], collections.Sequence):
+            if isinstance(value[entry['name']], Sequence):
                 for item in value[entry['name']]:
                     _evaluate_plain_value(item, entry['item_type'])
             elif value[entry['name']] is None:
@@ -84,7 +84,7 @@ def _encode_plain_value(value, value_type, buf):
             buf.put(value)
     elif value_type == 'boolean':
         buf.putInt8(1 if value else 0)
-    elif isinstance(value_type, collections.Sequence):
+    elif isinstance(value_type, Sequence):
         _encode_sequence(value, value_type, buf)
     else:
         raise NotImplementedError("Reference to non-implemented type in schema: {0}".format(value_type))

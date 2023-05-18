@@ -55,7 +55,7 @@ def check_and_get_sizes(action_cls, args, cluster, sizer_map):
                     log.info("{0} {1}:{2}".format(partition.size, topic, partition.num))
 
 
-def run_preferred_replica_elections(batches, args, tools_path, plugins, dry_run):
+def run_preferred_replica_elections(batches, args, tools_path, plugins, dry_run, cluster):
     for i, batch in enumerate(batches):
         # Sleep between PLEs
         if i > 0 and not dry_run:
@@ -63,7 +63,7 @@ def run_preferred_replica_elections(batches, args, tools_path, plugins, dry_run)
             time.sleep(args.ple_wait)
 
         log.info("Executing preferred replica election {0}/{1}".format(i + 1, len(batches)))
-        batch.execute(i + 1, len(batches), args.zookeeper, tools_path, plugins, dry_run)
+        batch.execute(i + 1, len(batches), cluster.brokers, tools_path, plugins, dry_run)
 
 
 def get_all_plugins():
@@ -133,7 +133,7 @@ def main():
 
     for i, batch in enumerate(batches):
         log.info("Executing partition reassignment {0}/{1}: {2}".format(i + 1, len(batches), repr(batch)))
-        batch.execute(i + 1, len(batches), args.zookeeper, tools_path, plugins, dry_run)
+        batch.execute(i + 1, len(batches), cluster.brokers, tools_path, plugins, dry_run)
 
     run_plugins_at_step(plugins, 'before_ple')
 
@@ -141,7 +141,7 @@ def main():
         all_cluster_partitions = [p for p in action_to_run.cluster.partitions(args.exclude_topics)]
         batches = split_partitions_into_batches(all_cluster_partitions, batch_size=args.ple_size, use_class=ReplicaElection)
         log.info("Number of replica elections: {0}".format(len(batches)))
-        run_preferred_replica_elections(batches, args, tools_path, plugins, dry_run)
+        run_preferred_replica_elections(batches, args, tools_path, plugins, dry_run, cluster)
 
     run_plugins_at_step(plugins, 'finished')
 
