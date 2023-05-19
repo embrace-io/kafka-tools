@@ -99,7 +99,7 @@ class SizerJMXTests(unittest.TestCase):
         self.args.property = []
         sizer = SizerJMX(self.args, self.cluster)
         assert isinstance(sizer, SizerJMX)
-        mock_jpype_module.startJVM.assert_called_with("/export/apps/jdk/JDK-1_8_0_72/jre/lib/amd64/server/libjvm.so")
+        mock_jpype_module.startJVM.assert_called_with("/usr/lib/jvm/jre/lib/server/libjvm.so")
         mock_jpype_module.java.util.HashMap.assert_called_once()
 
     def test_sizer_missing_username(self):
